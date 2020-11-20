@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+ 
+<head>
+  <meta charset="utf-8">
+  <title>ON-OFF control simulator</title>
+ 
+  <script src="https://cdn.zingchart.com/zingchart.min.js"></script>
+  <style>
+    html,
+    body,
+    #myChart {
+      width: 100%;
+      height: 100%;
+    }
+	input {
+	width: 25%;
+	text-align:center;
+	}
+	td {
+	
+	background-color: peachpuff;
+	text-align: center;
+	}	
+  </style>
+</head>
+<body>
+<table align="center" oninput="setvalues ();">
+	<tr>
+	<td>
+Process parameters <br>
+Gain: <input id="gain" type="number" value ="1" ><br>
+Time Constant: <input id="time" type="number" value ="100" ><br>
+	</td>
+	<td>
+Control parameters <br>
+SetPoint(0-100): <input id="sp" type="number" value ="50"><br>
+Hysteresis: <input id="hyst" type="number" value ="2">%<br>
+	</td>
+	<td>
+Plot parameters <br>	
+Points: <input id="points" type="number" value ="250"><br>
+Animation: <input type="checkbox" id="animation">
+	</td>
+	</tr>
+</table>
+
+<script>
+
+setTimeout('setvalues ()', 0);
+
+function setvalues (){
+
+	let gain = document.getElementById('gain').value;
+	let time = document.getElementById('time').value;
+	let sp = document.getElementById('sp').value;
+	let points = document.getElementById('points').value;
+	let hyst = document.getElementById('hyst').value;
+	let anim = document.getElementById('animation').checked ? +1 : 0;
+	let pv = []; // массив данных процесса 
+	let pv100 = []; //то же но *100
+	let op = []; // управляющий сигнал 1 вкл, 0 выкл
+	let pvp = 0; //предыдущее значение процесса
+	let low = sp-sp*hyst/100; //нижняя граница гистерезиса
+	let high = +sp+(sp*hyst/100); //верхняя граница гистерезиса
+	let st=true; // старт нагрева
+	let a = Math.pow(2.71828182845904, -1/time);
+	let b = gain*(1 -a);
+	for (var i=0;i<points;i++) {
+		if (pvp<=(low/100)) {
+			st=true;
+			op[i]=1;
+			}
+		else if (pvp<=(high/100)&& st) op[i] = 1;
+		else { st=false; op[i]=0;}		
+
+		pv[i] = op[i]*b+pvp*a;
+		pv100[i] = pv[i]*100;
+		pvp = pv[i];
+	}
+	
+	ZC.LICENSE = ["569d52cefae586f634c54f86dc99e6a9", "b55b025e438fa8a98e32482b5f768ff5"];
+    var myConfig = {
+    type: "line",
+    "plot": {
+		"animation": {
+          "effect": anim,
+          "sequence": 2,
+          "speed": 200,
+        }
+		},
+	legend: {
+    layout: "1x2", //row x column
+    x: "20%",
+    y: "5%",
+	},
+ 	crosshairX:{
+ 	  plotLabel:{
+ 	    text: "%v"
+ 	  }
+ 	},
+      "scale-y": {
+    item: {
+      fontColor: "#7CA82B"
+    },
+    markers: [
+	 {
+        type: "area",
+        range: [low, high],
+        backgroundColor: "#d89108",
+        alpha: 0.7
+      },
+	{
+        type: "line",
+        range: [sp],
+        lineColor: "#7CA82B",
+        lineWidth: 2,
+		  label: { //define label within marker
+          text: "SP = "+sp,
+          backgroundColor: "white",
+          alpha: 0.7,
+          textAlpha: 1,
+          offsetX: 60,
+          offsetY: -5
+        }
+      }]
+	},	
+	scaleX: {
+		zooming: true
+	},
+	  'scale-y-2': {
+	  values: "0:1"
+	},
+      series: [
+		{ scales: "scale-x,scale-y-2", values: op , 'legend-text': 'OP' },
+        { values: pv100 , text: 'PV'}
+      ]
+    };
+ 
+    zingchart.render({
+      id: 'myChart',
+      data: myConfig,
+      height: "90%",
+      width: "100%"
+    });
+}
+
+
+</script>
+  <div id='myChart'></div>
+</body> 
+</html>
